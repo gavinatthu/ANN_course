@@ -1,71 +1,59 @@
 import numpy as np
 
-# learning rate
-lr = 0.15
+X = np.array([[0,0],
+            [1,0],
+            [0,1],
+            [1,1]])
+bias1 = np.array([1,1,1,1])
+bias2 = np.array([1,1,1,1])
+# 在X第一列增加偏置1
+X = np.insert(X, 0, values = bias1, axis = 1)
+Y = np.array([[0],
+            [1],
+            [1],
+            [0]])
+# 输入权重矩阵W 4 x 3 ，说明隐含层有3个结点，包括1个偏置
+W = 2 * np.random.random((3, 2)) - 1
+# 输出权重矩阵V 4 x 2 ，说明输出层有2个结点，包含1个偏置
+V = 2 * np.random.random((3, 1)) - 1
+learn_rate = 0.8
 
-# Input data: Offset,x1,x2
-X = np.array([[-1,0,0],
-              [-1,0,1],
-              [-1,1,0],
-              [-1,1,1]])
-
-# Target data
-Y = np.array([[0,1,1,0]])
-
-# Weight matrix initialization, varying from -1 to 1
-V = np.random.uniform(-1,1,size=(3,3))
-W = np.random.uniform(-1,1,size=(3,1))
-print('weight from input to hidden->V:',V)
-print('weight from hidden to output->V:',W)
-
-# Activation function, sigmoid or tanh
 def sigmoid(x):
-    return 1/(1+np.exp(-x))
+    return 1 / (1 + np.exp(-x))
 
 def d_sigmoid(x):
-    return x*(1-x)
+    return x * (1 - x)
 
-def tanh(x):
-    return (1-np.exp(-x))/(1+np.exp(-x))
+def loss(predict,label):
+    return 0.5*(label-predict)**2
 
-def d_tanh(x):
-    return 0.5*(1-x*x)
-
-# Updating weight matrix
 def update():
-    global X,Y,W,V,lr
-
-    # L1: data from input layer to hidden layer
-    # L2: data from hidden layer to output layer
-    L1 = sigmoid(np.dot(X,V))
-    L2 = sigmoid(np.dot(L1,W))
-
-    # Correction of L1 and L2 through gradient descent
-    L2_c = (Y.T - L2)*d_sigmoid(L2)
-    L1_c = L2_c.dot(W.T)*d_sigmoid(L1)
-
-    # Correction of weight matrix
-    W_C = lr * L1.T.dot(L2_c)
-    V_C = lr * X.T.dot(L1_c)
-
-    # Updated weight matrix
-    W = W + W_C
-    V = V + V_C
-
+    global X, Y, W, V, bias2, learn_rate
+    L1 = sigmoid(np.dot(X, W))
+    # 在隐含层第一列增加偏置1
+    L1 = np.insert(L1, 0, values = bias2, axis = 1)
+    # 计算输出层的权值调整
+    L2 = sigmoid(np.dot(L1, V))
+    Diff = Y - L2   
+    Delta_L2 = Diff * d_sigmoid(L2)
+    Delta_V = np.dot(L1.T, Delta_L2)
+    V = V + learn_rate * Delta_V
+    # 计算隐含层的权值调整
+    Delta_L1 = np.dot(Delta_L2, V.T) * d_sigmoid(L1)
+    Delta_W = np.dot(X.T, Delta_L1)
+    Delta_W = np.delete(Delta_W, 0, axis=1)
+    W = W + learn_rate * Delta_W
 
 def main():
     for i in range(10000):
         update()
-        if i%500 == 0:
-            L1 = sigmoid(np.dot(X, V))
-            L2 = sigmoid(np.dot(L1, W))
-            print('Current error: ',np.mean(np.abs(Y.T - L2)))
-    L1 = sigmoid(np.dot(X, V))
-    L2 = sigmoid(np.dot(L1, W))
-    print('Final approximation: ',L2)
+        if i%1000 == 0:
+            L1 = sigmoid(np.dot(X, W))
+            L1 = np.insert(L1, 0, values = bias2, axis = 1)
+            L2 = sigmoid(np.dot(L1, V))
+            print('Times:', i, '  Current error:',np.mean(loss(Y,L2)))
+        i += 1
+    print(L2)
 
 if __name__ == "__main__":
     main()
-
-
-
